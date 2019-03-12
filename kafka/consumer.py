@@ -14,7 +14,7 @@ class KafkaConsumer():
             **kafka_settings
         }
         self.config = config
-        self.limit = limit
+        self.limit = int(limit)
 
     def topic_assigned(self, consumer, partitions):
         for p in partitions:
