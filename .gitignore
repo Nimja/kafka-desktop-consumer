@@ -1,0 +1,16 @@
+venv
+config.ini
+
+.idea
+
+.env
+.env-parts/
+.DS_Store
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OSX File.
+.DS_Store
