@@ -48,6 +48,7 @@ class ClientFrame(wx.Frame):
         # Json output.
         self.output = wx.TextCtrl(self, size=(500,450), style=wx.TE_MULTILINE | wx.TE_READONLY)
         sizer_bottom.Add(self.output, 1, wx.EXPAND)
+        self.sizer_bottom = sizer_bottom
 
         # Basic sizer.
         self.sizer = wx.BoxSizer(wx.VERTICAL)
@@ -90,6 +91,9 @@ class ClientFrame(wx.Frame):
             return
 
         self.SetStatusText("Loading messages from Kafka...")
+        self.sizer.Hide(self.sizer_bottom)
+        # Update the window.
+        app.Yield()
         try:
             consumer = kafka.consumer.KafkaConsumer(kafka_settings, defaults['max.messages'])
             self.messages = consumer.consume([topic_name])
@@ -101,14 +105,13 @@ class ClientFrame(wx.Frame):
             if choices:
                 self.list.SetSelection(0)
             self.show_item(None)
-
-            self.SetStatusText("Done - %s - Found %s messages" % (self.topic.GetValue(), len(self.messages)))
+            self.sizer.Show(self.sizer_bottom)
+            self.SetStatusText("Topic: %s - Count: %s" % (self.topic.GetValue(), len(self.messages)))
         except Exception as e:
             self.SetStatusText("ERROR!")
             self.show_error(str(e))
 
 
-if __name__ == '__main__':
-    app = wx.App()
-    frm = ClientFrame(None, title='Kafka Consumer', size=(500,500))
-    app.MainLoop()
+app = wx.App()
+frm = ClientFrame(None, title='Kafka Consumer', size=(500,500))
+app.MainLoop()
