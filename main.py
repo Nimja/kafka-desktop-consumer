@@ -1,6 +1,6 @@
-#!/bin/python
+#!./venv/bin/python3
 """
-Hello World, but with more meat.
+The window frame with the kafka consumer elements.
 """
 
 import wx
