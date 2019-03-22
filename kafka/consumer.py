@@ -1,7 +1,10 @@
 from confluent_kafka import Consumer, KafkaError, OFFSET_BEGINNING
 from . import avro_serializer
+import json
 
 TIMEOUT = 10.0
+
+AVRO_PREFIX = b'Obj\x01\x04\x14avro.codec'
 
 
 class KafkaConsumer():
@@ -65,7 +68,22 @@ class KafkaConsumer():
         return messages
 
     def _auto_decode(self, value):
-        return avro_serializer.deserialize_first(value)
+        """
+        If it starts with AVRO prefix, we decode it.
+
+        Otherwise we attempt JSON or just return text.
+        :param value:
+        :return:
+        """
+        if value[:len(AVRO_PREFIX)] == AVRO_PREFIX:
+            return avro_serializer.deserialize_first(value)
+
+        decoded = value.decode("utf-8")
+        try:
+            return json.loads(decoded)
+        except Exception:
+            return decoded
+
 
     def error_callback(self, err):
         """ Any errors in the producer will be raised here. For example if Kafka cannot connect. """
