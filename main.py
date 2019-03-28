@@ -7,6 +7,12 @@ import wx
 import configparser
 import kafka
 import json
+import os
+
+if not os.path.isfile('config.ini'):
+    print("ERROR: Remember to copy config.sample.ini to your own config.ini file!")
+    import sys
+    sys.exit(1)
 
 config = configparser.ConfigParser()
 config.read('config.ini')

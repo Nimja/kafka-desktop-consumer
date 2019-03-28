@@ -8,7 +8,6 @@ The code is quite simple and might be extended with more decoding options.
 Copy config.sample.ini to config.ini and configure as desired.
 
 ## Installing on OSX
-
 * Install homebrew: https://brew.sh/
 * Install openssl: `brew install openssl`
 * Install python: `brew install python`
@@ -16,8 +15,10 @@ Copy config.sample.ini to config.ini and configure as desired.
 * Start venv: `source ./venv/bin/activate`
 * Instal requirements: `pip install -r requirements.txt`
 
+## Configure
+* Create config: `cp config.sample.ini config.ini`
+* Edit config file!
+
 ## Running
 
-```bash
-python3 main.py
-```
+* Run main: `./main.py`
