@@ -1,8 +1,8 @@
-from confluent_kafka import Consumer, KafkaError, OFFSET_BEGINNING
+from confluent_kafka import Consumer, TopicPartition, KafkaError, OFFSET_BEGINNING
 from . import avro_serializer
 import json
 
-TIMEOUT = 10.0
+TIMEOUT = 5.0
 
 AVRO_PREFIX = b'Obj\x01\x04\x14avro.codec'
 
@@ -13,6 +13,9 @@ class KafkaConsumer():
     offsets = {}
 
     def __init__(self, kafka_settings, limit=100):
+        """
+        Setup config and limit.
+        """
         config = {
             'error_cb': self.error_callback,
             **kafka_settings,
@@ -20,6 +23,39 @@ class KafkaConsumer():
         }
         self.config = config
         self.limit = int(limit)
+
+    def get_topic_list(self):
+        """
+        Get sorted list of all topics.
+        """
+        consumer = Consumer(self.config)
+        cluster_metadata = consumer.list_topics(timeout=TIMEOUT)
+        topics = list(cluster_metadata.topics.keys())
+        topics.sort()
+        return topics
+
+    def list_topics(self, with_messages_only=True):
+        """
+        Get sorted list of all topics with a message.
+
+        Called from command-line with ./list_topics.py
+        """
+        if with_messages_only:
+            print ("Listing topics with messages... (use any parameter to list all)")
+        else:
+            print ("Listing all topics...")
+        consumer = Consumer(self.config)
+        cluster_metadata = consumer.list_topics(timeout=TIMEOUT)
+        topics = list(cluster_metadata.topics.keys())
+        topics.sort()
+        for topic in topics:
+            if with_messages_only:
+                consumer.subscribe([topic])
+                msg = consumer.poll(timeout=2)
+                if msg is None:
+                    continue
+            print(topic)
+        print(' - - - Done. - - - ')
 
     def topic_assigned(self, consumer, partitions):
         for p in partitions:
@@ -33,9 +69,9 @@ class KafkaConsumer():
         consumer = Consumer(self.config)
         # Subscribe to topics
         consumer.subscribe(topic)
-        self._get_messages(consumer)
-        consumer.subscribe(topic, on_assign=self.topic_assigned)
         return self._get_messages(consumer)
+        # consumer.subscribe(topic, on_assign=self.topic_assigned)
+        # return self._get_messages(consumer)
 
     def _get_messages(self, consumer):
         """ Get all the messages from the current topics."""
@@ -45,7 +81,7 @@ class KafkaConsumer():
         while count < self.limit:
             msg = consumer.poll(timeout=TIMEOUT)
             if msg is None:
-                continue
+                break
 
             self.offsets[(msg.topic(), msg.partition())] = msg.offset()
             if msg.error():

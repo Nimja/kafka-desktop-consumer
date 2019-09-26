@@ -8,6 +8,7 @@ import configparser
 import kafka
 import json
 import os
+from lib.wxautocompletectrl import AutocompleteTextCtrl, list_completer, EVT_VALUE_CHANGED
 
 if not os.path.isfile('config.ini'):
     print("ERROR: Remember to copy config.sample.ini to your own config.ini file!")
@@ -27,17 +28,24 @@ class ClientFrame(wx.Frame):
     """
 
     messages = []
-
     def __init__(self, *args, **kw):
         # ensure the parent's __init__ is called
         super(ClientFrame, self).__init__(*args, **kw)
 
         sizer_top = wx.BoxSizer(wx.HORIZONTAL)
 
-        # Add topic field.
-        self.topic = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.consumer = kafka.consumer.KafkaConsumer(kafka_settings, defaults['max.messages'])
+
+        # Add topic field, an auto-complete field.
+        self.topic = AutocompleteTextCtrl(
+            self,
+            completer=list_completer(self.consumer.get_topic_list()),
+            style=wx.TE_PROCESS_ENTER
+        )
         self.topic.SetValue(defaults.get('topic'))
         self.Bind(wx.EVT_TEXT_ENTER, self.refresh_topic, self.topic)
+        self.topic.onchange = self._update_messages
+
         sizer_top.Add(self.topic, 1, wx.EXPAND)
 
         # Add update button.
@@ -75,7 +83,6 @@ class ClientFrame(wx.Frame):
         self.SetStatusText("... loading ...")
 
         self.Show()
-        self._update_messages()
 
     def update_topic(self, event):
         self.show_error("Updated topic.")
@@ -147,8 +154,7 @@ class ClientFrame(wx.Frame):
         # Update the window.
         app.Yield()
         try:
-            consumer = kafka.consumer.KafkaConsumer(kafka_settings, defaults['max.messages'])
-            self.messages = consumer.consume([topic_name])
+            self.messages = self.consumer.consume([topic_name])
             choices = []
             for message in self.messages:
                 choices.insert(0, "%s - %s" % (message['offset'], message['key']))
@@ -160,6 +166,7 @@ class ClientFrame(wx.Frame):
             self.sizer.Show(self.sizer_bottom)
             self.SetStatusText("Topic: %s - Count: %s" % (self.topic.GetValue(), len(self.messages)))
         except Exception as e:
+            raise e
             self.SetStatusText("ERROR!")
             self.show_error(str(e))
 

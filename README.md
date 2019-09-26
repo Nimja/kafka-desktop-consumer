@@ -1,7 +1,7 @@
 # Kafka Client
 A small desktop client to read embedded AVRO serialized messages from Kafka.
 
-The code is quite simple and might be extended with more decoding options. 
+The code is quite simple and might be extended with more decoding options.
 
 ## Getting Started
 
@@ -19,6 +19,13 @@ Copy config.sample.ini to config.ini and configure as desired.
 * Create config: `cp config.sample.ini config.ini`
 * Edit config file!
 
-## Running
+# Running
 
 * Run main: `./main.py`
+
+## Listing all topics with messages
+Because sometimes (especially on test environments), it's nice to know all topics with at least 1 message.
+
+This might take a LONG time to list all of them.
+
+* Run main: `./list_topics.py`
