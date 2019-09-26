@@ -48,6 +48,13 @@ class ClientFrame(wx.Frame):
 
         sizer_top.Add(self.topic, 1, wx.EXPAND)
 
+        # Add offset field.
+        self.offset = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER, size=(50, -1))
+        self.offset.SetValue(defaults.get('offset', '0'))
+        self.Bind(wx.EVT_TEXT_ENTER, self.refresh_topic, self.offset)
+
+        sizer_top.Add(self.offset, 0, wx.EXPAND)
+
         # Add update button.
         self.update_button = wx.Button(self, -1, "Update", size=(100, -1))
         self.Bind(wx.EVT_BUTTON, self.refresh_topic, self.update_button)
@@ -145,6 +152,8 @@ class ClientFrame(wx.Frame):
 
     def _update_messages(self):
         topic_name = self.topic.GetValue()
+        offset = int(self.offset.GetValue())
+        self.offset.SetValue(str(offset))
         if not topic_name:
             self.SetStatusText("No topic given...")
             return
@@ -154,7 +163,7 @@ class ClientFrame(wx.Frame):
         # Update the window.
         app.Yield()
         try:
-            self.messages = self.consumer.consume([topic_name])
+            self.messages = self.consumer.consume([topic_name], offset=offset)
             choices = []
             for message in self.messages:
                 choices.insert(0, "%s - %s" % (message['offset'], message['key']))
@@ -166,7 +175,6 @@ class ClientFrame(wx.Frame):
             self.sizer.Show(self.sizer_bottom)
             self.SetStatusText("Topic: %s - Count: %s" % (self.topic.GetValue(), len(self.messages)))
         except Exception as e:
-            raise e
             self.SetStatusText("ERROR!")
             self.show_error(str(e))
 

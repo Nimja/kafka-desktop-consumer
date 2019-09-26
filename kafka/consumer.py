@@ -19,7 +19,8 @@ class KafkaConsumer():
         config = {
             'error_cb': self.error_callback,
             **kafka_settings,
-            'auto.offset.reset': 'earliest',
+            'enable.auto.commit': True,
+            'auto.offset.reset': 'latest',
         }
         self.config = config
         self.limit = int(limit)
@@ -58,20 +59,28 @@ class KafkaConsumer():
         print(' - - - Done. - - - ')
 
     def topic_assigned(self, consumer, partitions):
+        """
+        Run when consumer has assigned the topic, here we can influence the offset.
+        """
         for p in partitions:
-            offset = self.offsets.get((p.topic, p.partition)) - self.limit - 1
-            if offset < 0:
-                offset = OFFSET_BEGINNING
-            p.offset = offset
+            if self.offset > 0:
+                p.offset = self.offset
+            else:
+                offset = p.offset - self.limit - 1
+                if offset < 0:
+                    offset = OFFSET_BEGINNING
+                p.offset = offset
         consumer.assign(partitions)
 
-    def consume(self, topic):
+    def consume(self, topic, offset=0):
+        self.offset = offset
         consumer = Consumer(self.config)
-        # Subscribe to topics
-        consumer.subscribe(topic)
-        return self._get_messages(consumer)
-        # consumer.subscribe(topic, on_assign=self.topic_assigned)
-        # return self._get_messages(consumer)
+        # Subscribe and set offset.
+        consumer.subscribe(topic, on_assign=self.topic_assigned)
+        result = self._get_messages(consumer)
+        # Close and commit.
+        consumer.close()
+        return result
 
     def _get_messages(self, consumer):
         """ Get all the messages from the current topics."""
