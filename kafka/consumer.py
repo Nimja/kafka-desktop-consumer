@@ -12,6 +12,8 @@ class KafkaConsumer():
     limit = 100
     offsets = {}
 
+    _consumer = None
+
     def __init__(self, kafka_settings, limit=100):
         """
         Setup config and limit.
@@ -25,15 +27,28 @@ class KafkaConsumer():
         self.config = config
         self.limit = int(limit)
 
+    def _get_consumer(self):
+        """
+        Create consumer, only once to keep the connection.
+        """
+        if not self._consumer:
+            self._consumer = Consumer(self.config)
+        return self._consumer
+
     def get_topic_list(self):
         """
         Get sorted list of all topics.
+
+        This is always done as the first call and also serves as a "connect".
         """
-        consumer = Consumer(self.config)
-        cluster_metadata = consumer.list_topics(timeout=TIMEOUT)
-        topics = list(cluster_metadata.topics.keys())
-        topics.sort()
-        return topics
+        try:
+            cluster_metadata = self._get_consumer().list_topics(timeout=TIMEOUT)
+            topics = list(cluster_metadata.topics.keys())
+            topics.sort()
+            return topics
+        except Exception as e:
+            print("Error retrieving topics: ", e)
+        return []
 
     def list_topics(self, with_messages_only=True):
         """
@@ -45,7 +60,7 @@ class KafkaConsumer():
             print ("Listing topics with messages... (use any parameter to list all)")
         else:
             print ("Listing all topics...")
-        consumer = Consumer(self.config)
+        consumer = self._get_consumer()
         cluster_metadata = consumer.list_topics(timeout=TIMEOUT)
         topics = list(cluster_metadata.topics.keys())
         topics.sort()
@@ -74,12 +89,10 @@ class KafkaConsumer():
 
     def consume(self, topic, offset=0):
         self.offset = offset
-        consumer = Consumer(self.config)
+        consumer = self._get_consumer()
         # Subscribe and set offset.
         consumer.subscribe(topic, on_assign=self.topic_assigned)
         result = self._get_messages(consumer)
-        # Close and commit.
-        consumer.close()
         return result
 
     def _get_messages(self, consumer):
