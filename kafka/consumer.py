@@ -93,7 +93,6 @@ class KafkaConsumer():
             if msg is None:
                 break
 
-            print("OFFSET:", msg.offset())
             self.offsets[(msg.topic(), msg.partition())] = msg.offset()
             if msg.error():
                 if msg.error().code() == KafkaError._PARTITION_EOF:
