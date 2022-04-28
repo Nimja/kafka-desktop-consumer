@@ -20,7 +20,7 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 defaults = config['defaults']
 kafka_settings = config['kafka']
-
+avro_settings = config['avro']
 
 class ClientFrame(wx.Frame):
     """
@@ -34,7 +34,11 @@ class ClientFrame(wx.Frame):
 
         sizer_top = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.consumer = kafka.consumer.KafkaConsumer(kafka_settings, defaults['max.messages'])
+        self.consumer = kafka.consumer.KafkaConsumer(
+            kafka_settings=kafka_settings,
+            avro_settings=avro_settings,
+            limit=defaults['max.messages']
+        )
 
         # Add topic field, an auto-complete field.
         self.topic = AutocompleteTextCtrl(

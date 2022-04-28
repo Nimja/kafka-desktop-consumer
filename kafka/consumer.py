@@ -1,11 +1,9 @@
 from confluent_kafka import Consumer, TopicPartition, KafkaError, OFFSET_BEGINNING
-from . import avro_serializer
-import json
+from .avro_schemas.auto_decode import AutoDecode
+from .avro_schemas.schema_registry_client import AvroSchemaRegistryClient
+import io
 
 TIMEOUT = 5.0
-
-AVRO_PREFIX = b'Obj\x01\x04\x14avro.codec'
-
 
 class KafkaConsumer():
     config = {}
@@ -14,15 +12,19 @@ class KafkaConsumer():
 
     _consumer = None
 
-    def __init__(self, kafka_settings, limit=100):
+    def __init__(self, kafka_settings, avro_settings, limit=100):
         """
         Setup config and limit.
         """
+        self.auto_decode = AutoDecode(
+            AvroSchemaRegistryClient(avro_settings.get('registry.url', ''))
+        )
         config = {
             'error_cb': self.error_callback,
             **kafka_settings,
             'enable.auto.commit': True,
-            'auto.offset.reset': 'latest',
+            'auto.offset.reset': 'earliest',
+            'default.topic.config': {'auto.offset.reset': 'earliest'}
         }
         self.config = config
         self.limit = int(limit)
@@ -73,25 +75,11 @@ class KafkaConsumer():
             print(topic)
         print(' - - - Done. - - - ')
 
-    def topic_assigned(self, consumer, partitions):
-        """
-        Run when consumer has assigned the topic, here we can influence the offset.
-        """
-        for p in partitions:
-            if self.offset > 0:
-                p.offset = self.offset
-            else:
-                offset = p.offset - self.limit - 1
-                if offset < 0:
-                    offset = OFFSET_BEGINNING
-                p.offset = offset
-        consumer.assign(partitions)
-
     def consume(self, topic, offset=0):
         self.offset = offset
         consumer = self._get_consumer()
         # Subscribe and set offset.
-        consumer.subscribe(topic, on_assign=self.topic_assigned)
+        consumer.assign([TopicPartition(topic[0], 0, offset)])
         result = self._get_messages(consumer)
         return result
 
@@ -105,6 +93,7 @@ class KafkaConsumer():
             if msg is None:
                 break
 
+            print("OFFSET:", msg.offset())
             self.offsets[(msg.topic(), msg.partition())] = msg.offset()
             if msg.error():
                 if msg.error().code() == KafkaError._PARTITION_EOF:
@@ -118,30 +107,12 @@ class KafkaConsumer():
                 messages.append(
                     {
                         'key': msg.key().decode('utf8'),
-                        'value': self._auto_decode(msg.value()),
+                        'value': self.auto_decode.decode(msg.value()),
                         'offset': msg.offset()
                     }
                 )
             count += 1
         return messages
-
-    def _auto_decode(self, value):
-        """
-        If it starts with AVRO prefix, we decode it.
-
-        Otherwise we attempt JSON or just return text.
-        :param value:
-        :return:
-        """
-        if value[:len(AVRO_PREFIX)] == AVRO_PREFIX:
-            return avro_serializer.deserialize_first(value)
-
-        decoded = value.decode("utf-8")
-        try:
-            return json.loads(decoded)
-        except Exception:
-            return decoded
-
 
     def error_callback(self, err):
         """ Any errors in the producer will be raised here. For example if Kafka cannot connect. """
