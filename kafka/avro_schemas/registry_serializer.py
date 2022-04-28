@@ -4,7 +4,6 @@ import struct
 
 # Third Party Library Imports
 from avro.io import DatumReader, DatumWriter, BinaryDecoder, BinaryEncoder
-import fastavro
 from .schema_registry_client import AvroSchemaRegistryClient
 
 
