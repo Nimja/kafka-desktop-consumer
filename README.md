@@ -21,11 +21,12 @@ Copy config.sample.ini to config.ini and configure as desired.
 
 # Running
 
-* Run main: `./main.py`
+* Run main: `./run.sh` - This creates the virtual env (if not existing) and runs `./main.py`
+
+After one run, you can also run `./main.py` directly.
 
 ## Listing all topics with messages
 Because sometimes (especially on test environments), it's nice to know all topics with at least 1 message.
 
-This might take a LONG time to list all of them.
-
-* Run main: `./list_topics.py`
+* List with messages: `./list_topics.py` - This will take a LONG time.
+* List all topics: `./list_topics.py 1` - Should be very fast.

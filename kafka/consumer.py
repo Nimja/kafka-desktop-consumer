@@ -5,10 +5,10 @@ import io
 
 TIMEOUT = 5.0
 
+
 class KafkaConsumer():
     config = {}
     limit = 100
-    offsets = {}
 
     _consumer = None
 
@@ -59,16 +59,18 @@ class KafkaConsumer():
         Called from command-line with ./list_topics.py
         """
         if with_messages_only:
-            print ("Listing topics with messages... (use any parameter to list all)")
+            print("Listing topics with messages... (use any parameter to list all)")
+            print("Please be patient, this can take a while...")
         else:
-            print ("Listing all topics...")
+            print("Listing all topics...")
+        print(" - - - Start. - - - ")
         consumer = self._get_consumer()
         cluster_metadata = consumer.list_topics(timeout=TIMEOUT)
         topics = list(cluster_metadata.topics.keys())
         topics.sort()
         for topic in topics:
             if with_messages_only:
-                consumer.subscribe([topic])
+                consumer.assign([TopicPartition(topic, 0, OFFSET_BEGINNING)])
                 msg = consumer.poll(timeout=2)
                 if msg is None:
                     continue
@@ -76,8 +78,9 @@ class KafkaConsumer():
         print(' - - - Done. - - - ')
 
     def consume(self, topic, offset=0):
-        self.offset = offset
         consumer = self._get_consumer()
+        if offset <= 0:
+            offset = OFFSET_BEGINNING
         # Subscribe and set offset.
         consumer.assign([TopicPartition(topic[0], 0, offset)])
         result = self._get_messages(consumer)
@@ -93,7 +96,6 @@ class KafkaConsumer():
             if msg is None:
                 break
 
-            self.offsets[(msg.topic(), msg.partition())] = msg.offset()
             if msg.error():
                 if msg.error().code() == KafkaError._PARTITION_EOF:
                     eof_reached[(msg.topic(), msg.partition())] = True

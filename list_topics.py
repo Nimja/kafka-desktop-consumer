@@ -17,8 +17,9 @@ if not os.path.isfile('config.ini'):
 config = configparser.ConfigParser()
 config.read('config.ini')
 kafka_settings = config['kafka']
+avro_settings = config['avro']
 
-consumer = kafka.consumer.KafkaConsumer(kafka_settings, 1)
+consumer = kafka.consumer.KafkaConsumer(kafka_settings, avro_settings, 1)
 
 with_messages_only = len(sys.argv) == 1
 consumer.list_topics(with_messages_only=with_messages_only)
