@@ -1,18 +1,20 @@
-import struct
-import io
+import json
 from .schema_registry_client import AvroSchemaRegistryClient
 from .embedded_serializer import EmbeddedSerializer
 from .registry_serializer import RegistrySerializer
-import json
 
 AVRO_SCHEMA_PREFIX = b'Obj\x01\x04\x14avro.codec'
 AVRO_REPOSITORY_PREFIX = b'\x00'
 
-class AutoDecode:
-    def __init__(self, registry_client:AvroSchemaRegistryClient) -> None:
+
+class AutoDecode:  # pylint: disable=too-few-public-methods
+    """
+    Automatically decode a kafka bytes message into python dict, using embedded or schema registry.
+    """
+
+    def __init__(self, registry_client: AvroSchemaRegistryClient) -> None:
         self.embedded_serializer = EmbeddedSerializer()
         self.registry_serializer = RegistrySerializer(registry_client)
-
 
     def decode(self, message: bytes):
         """ Decode a single message. """
@@ -27,5 +29,5 @@ class AutoDecode:
         decoded = message.decode("utf-8")
         try:
             return json.loads(decoded)
-        except Exception:
+        except json.JSONDecodeError:
             return decoded

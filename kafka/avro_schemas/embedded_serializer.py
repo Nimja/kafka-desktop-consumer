@@ -6,9 +6,14 @@ from avro.datafile import DataFileReader, DataFileWriter
 from avro.io import DatumReader, DatumWriter
 import avro.schema
 
-class EmbeddedSerializer:
+
+class EmbeddedSerializer:  # pylint: disable=duplicate-code
+    """
+    Serialize avro messages with embedded schemas.
+    """
+
     @staticmethod
-    def _deserialize_list(value:bytes):
+    def _deserialize_list(value: bytes):
         """Deserialize AVRO encoded binary string and yield records.
         Args:
             value (str): binary string value.
@@ -19,8 +24,7 @@ class EmbeddedSerializer:
             for record in reader:
                 yield record
 
-
-    def deserialize(self, value:bytes) -> dict:
+    def deserialize(self, value: bytes) -> dict:
         """Deserialize AVRO encoded binary string and return the first record.
         Args:
             value (str): binary string value.
@@ -28,7 +32,6 @@ class EmbeddedSerializer:
             dict: deserialized record.
         """
         return next(self._deserialize_list(value))
-
 
     @staticmethod
     def _serialize_list(records: list, schema_json: str) -> bytes:
@@ -39,7 +42,7 @@ class EmbeddedSerializer:
         Returns:
             string: binary string value.
         """
-        schema = avro.schema.Parse(schema_json)  # need to know the schema to write
+        schema = avro.schema.parse(schema_json)  # need to know the schema to write
         output = io.BytesIO()
         result = b''
         with DataFileWriter(output, DatumWriter(), schema) as writer:
@@ -49,8 +52,7 @@ class EmbeddedSerializer:
             result = writer.writer.getvalue()
         return result
 
-
-    def serialize(self, record:dict, schema_json: str) -> bytes:
+    def serialize(self, record: dict, schema_json: str) -> bytes:
         """
         Serialize a single record.
         :param record:

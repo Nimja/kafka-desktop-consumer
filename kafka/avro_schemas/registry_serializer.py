@@ -9,17 +9,25 @@ from .schema_registry_client import AvroSchemaRegistryClient
 
 MAGIC_BYTE = 0
 
+
 class BytesIOContext(io.BytesIO):
     """
     Wrapper to allow use of StringIO via 'with' constructs.
     """
+
     def __enter__(self):
         return self
+
     def __exit__(self, *args):
         self.close()
         return False
 
+
 class RegistrySerializer:
+    """
+    Serialize avro messages with schema registry.
+    """
+
     def __init__(self, client: AvroSchemaRegistryClient) -> None:
         self.client = client
         self.id_to_readers = {}
@@ -35,10 +43,10 @@ class RegistrySerializer:
             self.id_to_readers[schema_id] = DatumReader(schema)
         return self.id_to_readers[schema_id]
 
-    def deserialize(self, message:bytes) -> dict:
+    def deserialize(self, message: bytes) -> dict:
         """ Deserialize a single message. """
         with BytesIOContext(message) as payload:
-            magic_byte,schema_id = struct.unpack('>bI',payload.read(5))
+            magic_byte, schema_id = struct.unpack('>bI', payload.read(5))
             if magic_byte is not MAGIC_BYTE:
                 raise Exception("Magic byte missing?")
             avro_reader = self._get_reader_for_schema_id(schema_id)
@@ -54,7 +62,7 @@ class RegistrySerializer:
             self.id_to_writers[schema_id] = DatumWriter(schema)
         return self.id_to_writers[schema_id]
 
-    def serialize(self, schema_id: int, record: dict) -> bytes:
+    def serialize(self, record: dict, schema_id: int) -> bytes:
         """ Serialize a single message with embedded AVRO schema by ID. """
         # get the writer
         writer = self._get_writer_for_schema_id(schema_id)
