@@ -107,7 +107,7 @@ class KafkaConsumer():
             else:
                 messages.append(
                     {
-                        'key': msg.key().decode('utf8'),
+                        'key':  self.auto_decode.decode(msg.key()),
                         'value': self.auto_decode.decode(msg.value()),
                         'offset': msg.offset()
                     }
