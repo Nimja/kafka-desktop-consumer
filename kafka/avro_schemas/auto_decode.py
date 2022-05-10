@@ -3,7 +3,7 @@ from .schema_registry_client import AvroSchemaRegistryClient
 from .embedded_serializer import EmbeddedSerializer
 from .registry_serializer import RegistrySerializer
 
-AVRO_SCHEMA_PREFIX = b'Obj\x01\x04\x14avro.codec'
+AVRO_SCHEMA_PREFIX = b'Obj\x01\x04'
 AVRO_REPOSITORY_PREFIX = b'\x00'
 
 
@@ -18,6 +18,9 @@ class AutoDecode:  # pylint: disable=too-few-public-methods
 
     def decode(self, message: bytes):
         """ Decode a single message. """
+        if not message:
+            return message
+
         # Embedded avro message.
         if message[:len(AVRO_SCHEMA_PREFIX)] == AVRO_SCHEMA_PREFIX:
             return self.embedded_serializer.deserialize(message)
@@ -26,8 +29,9 @@ class AutoDecode:  # pylint: disable=too-few-public-methods
             return self.registry_serializer.deserialize(message)
 
         # PROBABLY plain JSON.
-        decoded = message.decode("utf-8")
+        decoded = message
         try:
+            decoded = message.decode("utf-8")
             return json.loads(decoded)
-        except json.JSONDecodeError:
+        except Exception:  # pylint: disable=broad-except
             return decoded
