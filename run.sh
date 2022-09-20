@@ -15,4 +15,4 @@ then
 fi
 
 # Run app
-./venv/bin/python main.py
+./venv/bin/python main.py $@

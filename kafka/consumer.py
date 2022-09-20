@@ -52,51 +52,21 @@ class KafkaConsumer():
             print("Error retrieving topics: ", e)
         return []
 
-    def list_topics(self, with_messages_only=True):
-        """
-        Get sorted list of all topics with a message.
-
-        Called from command-line with ./list_topics.py
-        """
-        if with_messages_only:
-            print("Listing topics with messages... (use any parameter to list all)")
-            print("Please be patient, this can take a while...")
-        else:
-            print("Listing all topics...")
-        print(" - - - Start. - - - ")
-        consumer = self._get_consumer()
-        cluster_metadata = consumer.list_topics(timeout=TIMEOUT)
-        topics = list(cluster_metadata.topics.keys())
-        topics.sort()
-        for topic in topics:
-            if with_messages_only:
-                consumer.assign([TopicPartition(topic, 0, OFFSET_BEGINNING)])
-                msg = consumer.poll(timeout=2)
-                if msg is None:
-                    continue
-            print(topic)
-        print(' - - - Done. - - - ')
-
     def consume(self, topic, offset=0):
         consumer = self._get_consumer()
         if offset <= 0:
             offset = OFFSET_BEGINNING
         # Subscribe and set offset.
-        consumer.assign([TopicPartition(topic[0], 0, offset)])
-        result = self._get_messages(consumer)
-        return result
+        consumer.assign([TopicPartition(topic, 0, offset)])
 
-    def _get_messages(self, consumer):
-        """ Get all the messages from the current topics."""
         count = 0
-        messages = []
         eof_reached = {}
         while count < self.limit:
             msg = consumer.poll(timeout=TIMEOUT)
-            if msg is None:
+            if msg is None:  # Nothing to read.
                 break
 
-            if msg.error():
+            if msg.error(): # Message with error, which could just be end of partition.
                 if msg.error().code() == KafkaError._PARTITION_EOF:
                     eof_reached[(msg.topic(), msg.partition())] = True
                     if len(eof_reached) == len(consumer.assignment()):
@@ -104,8 +74,8 @@ class KafkaConsumer():
                         break
                 else:
                     raise Exception(msg.error())
-            else:
-                messages.append(
+            else: # A normal message.
+                yield(
                     {
                         'key':  self.auto_decode.decode(msg.key()),
                         'value': self.auto_decode.decode(msg.value()),
@@ -113,7 +83,6 @@ class KafkaConsumer():
                     }
                 )
             count += 1
-        return messages
 
     def error_callback(self, err):
         """ Any errors in the producer will be raised here. For example if Kafka cannot connect. """

@@ -1,5 +1,6 @@
 venv
-config.ini
+config*.ini
+cache*/*
 
 .idea
 
