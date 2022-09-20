@@ -1,11 +1,13 @@
 # Kafka Client
-A small desktop client to read embedded AVRO serialized messages from Kafka.
+A small desktop client to read embedded or repository AVRO serialized messages from Kafka.
 
-The code is quite simple and might be extended with more decoding options.
+It auto-decodes AVRO embedded, repository or plain JSON.
 
 ## Getting Started
 
 Copy config.sample.ini to config.ini and configure as desired.
+
+You can create multiple config files for different environnments!
 
 ## Requirements
 OpenSSL and python >3.6 need to be installed. If you already have them, you can skip this.
@@ -21,6 +23,11 @@ OpenSSL and python >3.6 need to be installed. If you already have them, you can 
 # Running
 
 `./run.sh`
+
+For a custom config file run with:
+`./run.sh -c config_test`
+
+It will auto-append `.ini` if that file exists.
 
 This will:
 * Create a virtual env and install pip requirements.
