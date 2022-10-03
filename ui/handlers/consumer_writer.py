@@ -53,7 +53,7 @@ class ConsumerWriter:
         handle = item
         # Traverse path.
         for part in parts:
-            if part in handle:
+            if isinstance(handle, dict) and part in handle:
                 handle = handle[part]
             else:
                 return
