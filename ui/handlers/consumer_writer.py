@@ -13,16 +13,14 @@ class ConsumerWriter:
         self.reader = reader
         self.convert_unix_ts_path = convert_unix_ts_path
 
-    def load_topic(self, topic_name):
+    def load_topic(self, topic_name, offset_start):
         self.parent_ui.update_status('Loading...')
         self.has_results = False
         topic_path = self.reader.get_topic_path(topic_name)
 
         path_exists = os.path.exists(topic_path)
 
-        latest_offset = 0
-        if path_exists:  # We have previous messages.
-            latest_offset = self.reader.get_latest_topic_offset(topic_name)
+        latest_offset = offset_start if offset_start > 0 else 0
 
         if not path_exists:
             os.makedirs(topic_path)

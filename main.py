@@ -7,9 +7,10 @@ from kafka.consumer import KafkaConsumer
 
 # Get config and cache path.
 config, cache_path = get_config()
+main_config = config['main']
 
 # Get kafka consumer, which is passed to window.
-consumer = KafkaConsumer(config['kafka'], config['avro'], limit=1000000)
+consumer = KafkaConsumer(config['kafka'], config['avro'], limit=int(main_config.get('limit')))
 
 # Init window with layout.
 window = sg.Window(
@@ -22,7 +23,7 @@ window = sg.Window(
 )
 
 # Init main class
-main = Main(config, window, consumer, cache_path)
+main = Main(main_config, window, consumer, cache_path)
 
 # Main event loop.
 while True:

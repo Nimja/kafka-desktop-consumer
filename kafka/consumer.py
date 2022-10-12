@@ -66,7 +66,7 @@ class KafkaConsumer():
             if msg is None:  # Nothing to read.
                 break
 
-            if msg.error(): # Message with error, which could just be end of partition.
+            if msg.error():  # Message with error, which could just be end of partition.
                 if msg.error().code() == KafkaError._PARTITION_EOF:
                     eof_reached[(msg.topic(), msg.partition())] = True
                     if len(eof_reached) == len(consumer.assignment()):
@@ -74,8 +74,8 @@ class KafkaConsumer():
                         break
                 else:
                     raise Exception(msg.error())
-            else: # A normal message.
-                yield(
+            else:  # A normal message.
+                yield (
                     {
                         'key':  self.auto_decode.decode(msg.key()),
                         'value': self.auto_decode.decode(msg.value()),

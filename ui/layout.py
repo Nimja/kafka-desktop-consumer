@@ -8,6 +8,7 @@ layout = [
         sg.Text("Kafka Topic"),
         sg.Button("Switch", key=main.BUTTON_CHANGE_TOPIC),
         sg.Text(size=(25, 1), key=main.OUTPUT_TOPIC, expand_x=True),
+        sg.Input(size=(10, 1), key=main.INPUT_OFFSET, enable_events=True),
         sg.Button("Load", key=main.BUTTON_LOAD),
     ],
     [

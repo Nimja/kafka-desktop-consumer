@@ -1,3 +1,4 @@
+import re
 from .handlers.consumer_writer import ConsumerWriter
 from .handlers.reader import Reader
 
@@ -7,6 +8,7 @@ OUTPUT_TOPIC = 'output_topic'
 BUTTON_LOAD = 'button_load'
 
 INPUT_SEARCH = 'input_search'
+INPUT_OFFSET = 'input_offset'
 BUTTON_SEARCH = 'button_search'
 
 OUTPUT_LIST = 'output_list'
@@ -27,13 +29,14 @@ class Main:
             parent_ui=self,
             consumer=consumer,
             reader=self.reader,
-            convert_unix_ts_path=config['main'].get('convert_unix_ts_path', '')
+            convert_unix_ts_path=config.get('convert_unix_ts_path', '')
         )
         self.topic_list = consumer.get_topic_list()
         self.has_results = False
         self.is_selecting_topic = False
         self.full_offsets = []
-        self.init(config['main'].get('topic', ''))
+        self.current_offset = 0
+        self.init(config.get('topic', ''))
 
     def handle(self, event, values):
         # Get the focus element keyname.
@@ -48,6 +51,10 @@ class Main:
             self._toggle_topic_selection()
             self._update_list()
 
+        # Changing offset.
+        elif event == INPUT_OFFSET:
+            self._update_offset(values[INPUT_OFFSET])
+
         # Searching in cached output.
         elif event == BUTTON_SEARCH or focus_element == INPUT_SEARCH:
             search_text = values[INPUT_SEARCH]
@@ -61,6 +68,7 @@ class Main:
     def init(self, topic_name):
         if self._attempt_topic(topic_name):
             self.full_offsets = self.reader.get_topic_offsets_from_cache(self.topic_name)
+            self._auto_update_offset()
             self._update_list()
 
     def _attempt_topic(self, topic_name):
@@ -92,9 +100,10 @@ class Main:
         self.window[OUTPUT_CONTENT].update('')
         self.window[OUTPUT_LIST].update([''])
         # Load.
-        self.consumer_writer.load_topic(self.topic_name)
+        self.consumer_writer.load_topic(self.topic_name, self.current_offset)
         self.full_offsets = self.reader.get_topic_offsets_from_cache(self.topic_name)
         self._update_list()
+        self._auto_update_offset()
 
     def _update_list(self, offsets=None):
         # By default, load the cached offsets.
@@ -118,7 +127,6 @@ class Main:
                 self._update_output_content(offsets[0])
             else:
                 self.window[OUTPUT_CONTENT].update('')
-
 
     def _get_current_full_list(self):
         if self.is_selecting_topic:
@@ -158,3 +166,18 @@ class Main:
     def update_status(self, text):
         self.window[STATUS_TEXT].update(text)
         self.window.refresh()
+
+    def _auto_update_offset(self):
+        offset = self.reader.get_latest_topic_offset(self.topic_name)
+        self.window[INPUT_OFFSET].update(offset)
+        self.current_offset = offset
+        self.window.refresh()
+
+    def _update_offset(self, new_offset):
+        new_offset = re.sub('\D', '', new_offset)
+        if new_offset:
+            new_offset = int(new_offset)
+        else:
+            new_offset = 0
+        self.window[INPUT_OFFSET].update(str(new_offset))
+        self.current_offset = new_offset
