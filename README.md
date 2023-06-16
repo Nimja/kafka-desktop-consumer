@@ -12,6 +12,8 @@ You can create multiple config files for different environnments!
 ## Requirements
 OpenSSL and python >3.6 need to be installed. If you already have them, you can skip this.
 
+Please note that on OSX, the installed python is NOT suitable!
+
 * Install homebrew: https://brew.sh/
 * Install openssl: `brew install openssl`
 * Install python: `brew install python`
