@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kafka-desktop-consumer"
-version = "1.0.0"
+version = "1.1"
 description = "A desktop consumer for kafka topics, that supports embedded, schema registry and more."
 authors = ["Nimja"]
 readme = "README.md"
