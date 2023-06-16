@@ -75,10 +75,14 @@ class KafkaConsumer():
                 else:
                     raise Exception(msg.error())
             else:  # A normal message.
+                key_data, key_decoding_type = self.auto_decode.decode(msg.key())
+                value_data, value_decoding_type = self.auto_decode.decode(msg.value())
                 yield (
                     {
-                        'key':  self.auto_decode.decode(msg.key()),
-                        'value': self.auto_decode.decode(msg.value()),
+                        'key': key_data,
+                        'value': value_data,
+                        'key_decoding_type': key_decoding_type,
+                        'value_decoding_type': value_decoding_type,
                         'offset': msg.offset()
                     }
                 )

@@ -15,6 +15,7 @@ OpenSSL and python >3.6 need to be installed. If you already have them, you can 
 * Install homebrew: https://brew.sh/
 * Install openssl: `brew install openssl`
 * Install python: `brew install python`
+* Install python-tk: `brew install python-tk`
 
 ## Configure
 * Create config: `cp config.sample.ini config.ini`
@@ -30,7 +31,7 @@ For a custom config file run with:
 It will auto-append `.ini` if that file exists.
 
 This will:
-* Create a virtual env and install pip requirements.
+* Create a virtual env and install pip requirements using poetry.
   * If the venv folder already exists, this step is skipped.
 * Run `./main.py` to start the application.
 

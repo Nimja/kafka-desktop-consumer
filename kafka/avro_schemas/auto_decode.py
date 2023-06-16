@@ -6,6 +6,13 @@ from .registry_serializer import RegistrySerializer
 AVRO_SCHEMA_PREFIX = b'Obj\x01\x04'
 AVRO_REPOSITORY_PREFIX = b'\x00'
 
+# Possible decoding types.
+DECODING_TYPE_NONE = 'none'
+DECODING_TYPE_AVRO_EMBEDDED = 'avro_embedded'
+DECODING_TYPE_AVRO_SCHEMA_REGISTRY = 'avro_schema_registry'
+DECODING_TYPE_JSON = 'json'
+DECODING_TYPE_PLAIN = 'plain'
+
 
 class AutoDecode:  # pylint: disable=too-few-public-methods
     """
@@ -19,19 +26,19 @@ class AutoDecode:  # pylint: disable=too-few-public-methods
     def decode(self, message: bytes):
         """ Decode a single message. """
         if not message:
-            return message
+            return message, DECODING_TYPE_NONE
 
         # Embedded avro message.
         if message[:len(AVRO_SCHEMA_PREFIX)] == AVRO_SCHEMA_PREFIX:
-            return self.embedded_serializer.deserialize(message)
+            return self.embedded_serializer.deserialize(message), DECODING_TYPE_AVRO_EMBEDDED
         # Schema registry avro message.
         if message[:len(AVRO_REPOSITORY_PREFIX)] == AVRO_REPOSITORY_PREFIX:
-            return self.registry_serializer.deserialize(message)
+            return self.registry_serializer.deserialize(message), DECODING_TYPE_AVRO_SCHEMA_REGISTRY
 
         # PROBABLY plain JSON.
         decoded = message
         try:
             decoded = message.decode("utf-8")
-            return json.loads(decoded)
+            return json.loads(decoded), DECODING_TYPE_JSON
         except Exception:  # pylint: disable=broad-except
-            return decoded
+            return decoded, DECODING_TYPE_PLAIN

@@ -1,8 +1,10 @@
 venv
+.venv
 config*.ini
 cache*/*
 
 .idea
+*.lock
 
 .env
 .env-parts/

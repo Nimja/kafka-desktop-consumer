@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "kafka-desktop-consumer"
+version = "1.0.0"
+description = "A desktop consumer for kafka topics, that supports embedded, schema registry and more."
+authors = ["Nimja"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+requests = "^2.31.0"
+avro-python3 = "^1.10.2"
+confluent-kafka = "^2.1.1"
+PySimpleGUI = "^4.60.5"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

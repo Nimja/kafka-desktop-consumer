@@ -1,0 +1,3 @@
+[virtualenvs]
+create = true
+in-project = true # Make sure we use .venv folder in project.

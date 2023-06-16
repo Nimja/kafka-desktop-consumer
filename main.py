@@ -1,4 +1,4 @@
-#!./venv/bin/python3
+#!./.venv/bin/python3
 import PySimpleGUI as sg
 from ui.layout import layout
 from ui.main import Main
