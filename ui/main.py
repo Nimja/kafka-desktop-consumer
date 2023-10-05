@@ -8,6 +8,8 @@ OUTPUT_TOPIC = 'output_topic'
 BUTTON_LOAD = 'button_load'
 
 INPUT_SEARCH = 'input_search'
+INPUT_SCAN = 'input_scan'
+BUTTON_SCAN = 'button_scan'
 INPUT_OFFSET = 'input_offset'
 BUTTON_SEARCH = 'button_search'
 
@@ -16,6 +18,9 @@ OUTPUT_CONTENT = 'output_content'
 OUTPUT_COLUMN = 'output_column'
 
 STATUS_TEXT = 'status_text'
+
+TAB_FILTER = 'tab_filter'
+TAB_SCAN = 'tab_scan'
 
 FILE_NAME_SPLIT = ' - '
 
@@ -60,6 +65,11 @@ class Main:
             search_text = values[INPUT_SEARCH]
             self._get_output_for_search(search_text)
 
+        # Searching in cached output.
+        elif event == BUTTON_SCAN:
+            scan_text = values[INPUT_SCAN]
+            self._update_list_for_scan(scan_text)
+
         # Handle click in list.
         elif event == OUTPUT_LIST:
             if self.has_results:
@@ -83,15 +93,18 @@ class Main:
             self.topic_name = topic_name
             return True
 
-    def _toggle_topic_selection(self, new_value=None):
-        if new_value == None:
-            new_value = not self.is_selecting_topic
+    def _toggle_topic_selection(self, is_selecting=None):
+        if is_selecting == None:
+            is_selecting = not self.is_selecting_topic
 
-        self.window[OUTPUT_COLUMN].update(visible=not new_value)
-        self.is_selecting_topic = new_value
+        self.window[OUTPUT_COLUMN].update(visible=not is_selecting)
+        self.window[TAB_SCAN].update(visible=not is_selecting)
+        self.window[BUTTON_SCAN].update(disabled=is_selecting)
+        self.window[INPUT_SCAN].update(disabled=is_selecting)
+        self.is_selecting_topic = is_selecting
         self.window[INPUT_SEARCH].update('')
 
-    def _load_topic(self):
+    def _load_topic(self, search_key=None):
         if not self.topic_name:
             self.update_status("Topic not found...?")
             return
@@ -100,7 +113,7 @@ class Main:
         self.window[OUTPUT_CONTENT].update('')
         self.window[OUTPUT_LIST].update([''])
         # Load.
-        self.consumer_writer.load_topic(self.topic_name, self.current_offset)
+        self.consumer_writer.load_topic(self.topic_name, self.current_offset, search_key)
         self.full_offsets = self.reader.get_topic_offsets_from_cache(self.topic_name)
         self._update_list()
         self._auto_update_offset()
@@ -127,6 +140,12 @@ class Main:
                 self._update_output_content(offsets[0])
             else:
                 self.window[OUTPUT_CONTENT].update('')
+
+    def _update_list_for_scan(self, scan_text):
+        # By default, load the cached offsets.
+        if scan_text == None:
+            return; # Do nothing.
+        self._load_topic(scan_text)
 
     def _get_current_full_list(self):
         if self.is_selecting_topic:

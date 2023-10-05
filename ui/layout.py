@@ -14,9 +14,32 @@ layout = [
     [
         sg.Column(
             [
-                [sg.Text("Filter")],
-                [sg.In(size=(25, 1), key=main.INPUT_SEARCH, enable_events=True, expand_x=True)],
-                [sg.Text("Messages")],
+                [
+                    sg.TabGroup(
+                        [
+                            [
+                                sg.Tab(
+                                    'Quick filter',
+                                    [
+                                        [sg.In(size=(25, 1), key=main.INPUT_SEARCH, enable_events=True, expand_x=True)],
+                                        [sg.Text("Filter on list below.")],
+                                    ],
+                                    key=main.TAB_FILTER,
+                                )
+                            ],
+                            [
+                                sg.Tab(
+                                    'Scan',
+                                    [
+                                        [sg.In(size=(25, 1), key=main.INPUT_SCAN, enable_events=False, expand_x=True), sg.Button("Scan", key=main.BUTTON_SCAN)],
+                                        [sg.Text("Full scan over topic, (takes long!)")],
+                                    ],
+                                    key=main.TAB_SCAN,
+                                )
+                            ],
+                        ],
+                    ),
+                ],
                 [
                     sg.Listbox(
                         values=[],
@@ -34,7 +57,7 @@ layout = [
         ),
         sg.Column(
             [
-                [sg.Text("Contents")],
+                [sg.Text("Message contents")],
                 [
                     sg.Multiline(
                         key=main.OUTPUT_CONTENT,

@@ -52,7 +52,7 @@ class KafkaConsumer():
             print("Error retrieving topics: ", e)
         return []
 
-    def consume(self, topic, offset=0):
+    def consume(self, topic, offset=0, search_key=None, single_limit=None):
         consumer = self._get_consumer()
         if offset <= 0:
             offset = OFFSET_BEGINNING
@@ -60,8 +60,12 @@ class KafkaConsumer():
         consumer.assign([TopicPartition(topic, 0, offset)])
 
         count = 0
+        sub_count = 0
+
         eof_reached = {}
-        while count < self.limit:
+        limit = single_limit if single_limit else self.limit
+
+        while count < limit and (not single_limit or sub_count < limit):
             msg = consumer.poll(timeout=TIMEOUT)
             if msg is None:  # Nothing to read.
                 break
@@ -76,17 +80,29 @@ class KafkaConsumer():
                     raise Exception(msg.error())
             else:  # A normal message.
                 key_data, key_decoding_type = self.auto_decode.decode(msg.key())
-                value_data, value_decoding_type = self.auto_decode.decode(msg.value())
-                yield (
-                    {
-                        'key': key_data,
-                        'value': value_data,
-                        'key_decoding_type': key_decoding_type,
-                        'value_decoding_type': value_decoding_type,
-                        'offset': msg.offset()
-                    }
-                )
-            count += 1
+                if not search_key or search_key in str(key_data):  # When searching key, only return matching rows.
+                    value_data, value_decoding_type = self.auto_decode.decode(msg.value())
+                    yield (
+                        msg.offset(),
+                        key_data,
+                        msg.timestamp(),
+                        {
+                            'key': key_data,
+                            'value': value_data,
+                            'key_decoding_type': key_decoding_type,
+                            'value_decoding_type': value_decoding_type,
+                            'offset': msg.offset()
+                        }
+                    )
+                    count += 1 # Only update for found messages.
+                else:
+                    yield (
+                        msg.offset(),
+                        key_data,
+                        msg.timestamp(),
+                        None
+                    )
+                    sub_count += 1
 
     def error_callback(self, err):
         """ Any errors in the producer will be raised here. For example if Kafka cannot connect. """
