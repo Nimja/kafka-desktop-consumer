@@ -3,8 +3,10 @@ import io
 import struct
 
 # Third Party Library Imports
-from avro.io import DatumReader, DatumWriter, BinaryDecoder, BinaryEncoder
+from avro.io import DatumReader, DatumWriter, BinaryDecoder, BinaryEncoder, AvroTypeException
+from avro_validator.schema import Schema as SchemaValidator
 from .schema_registry_client import AvroSchemaRegistryClient
+from ..exception import AvroSchemaException
 
 
 MAGIC_BYTE = 0
@@ -38,7 +40,7 @@ class RegistrySerializer:
         if schema_id not in self.id_to_readers:
             schema = self.client.get_by_schema_id(schema_id)
             if not schema:
-                raise Exception("Schema does not exist")
+                raise AvroSchemaException("Schema does not exist")
 
             self.id_to_readers[schema_id] = DatumReader(schema)
         return self.id_to_readers[schema_id]
@@ -48,7 +50,7 @@ class RegistrySerializer:
         with BytesIOContext(message) as payload:
             magic_byte, schema_id = struct.unpack('>bI', payload.read(5))
             if magic_byte is not MAGIC_BYTE:
-                raise Exception("Magic byte missing?")
+                raise AvroSchemaException("Magic byte missing?")
             avro_reader = self._get_reader_for_schema_id(schema_id)
             return avro_reader.read(BinaryDecoder(payload))
 
@@ -57,12 +59,26 @@ class RegistrySerializer:
         if schema_id not in self.id_to_writers:
             schema = self.client.get_by_schema_id(schema_id)
             if not schema:
-                raise Exception("Schema does not exist")
+                raise AvroSchemaException("Schema does not exist")
 
             self.id_to_writers[schema_id] = DatumWriter(schema)
         return self.id_to_writers[schema_id]
 
     def serialize(self, record: dict, schema_id: int) -> bytes:
+        """
+        Serialize a single message with embedded AVRO schema by ID.
+
+        On encoding exception, use the much nicer library to get a more helpful error!
+        """
+        try:
+            return self._serialize(record, schema_id)
+        except AvroTypeException:
+            schema = SchemaValidator(self.client.get_json_by_schema_id(schema_id))
+            parsed_schema = schema.parse()
+            parsed_schema.validate(record)
+            raise  # If the validator did not raise an error, raise again.
+
+    def _serialize(self, record: dict, schema_id: int) -> bytes:
         """ Serialize a single message with embedded AVRO schema by ID. """
         # get the writer
         writer = self._get_writer_for_schema_id(schema_id)

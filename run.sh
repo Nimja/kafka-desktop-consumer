@@ -12,8 +12,11 @@ if ! [ -x "$(command -v poetry)" ]; then
     pip install 'poetry==1.5.1'
 fi
 
+# Make sure lock-file is up to date with pyproject.toml.
+poetry lock --no-update
+
 # Create/update environment.
-poetry install
+poetry install --no-root
 
 # Run app
 poetry run python main.py $@

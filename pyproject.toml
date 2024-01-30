@@ -11,6 +11,7 @@ requests = "^2.31.0"
 avro-python3 = "^1.10.2"
 confluent-kafka = "^2.1.1"
 PySimpleGUI = "^4.60.5"
+avro-validator = "^1.2.1"
 
 
 [build-system]

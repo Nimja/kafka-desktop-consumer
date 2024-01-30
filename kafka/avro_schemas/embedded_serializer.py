@@ -3,8 +3,9 @@ import io
 
 # Third Party Library Imports
 from avro.datafile import DataFileReader, DataFileWriter
-from avro.io import DatumReader, DatumWriter
+from avro.io import DatumReader, DatumWriter, AvroTypeException
 import avro.schema
+from avro_validator.schema import Schema as SchemaValidator
 
 
 class EmbeddedSerializer:  # pylint: disable=duplicate-code
@@ -55,8 +56,13 @@ class EmbeddedSerializer:  # pylint: disable=duplicate-code
     def serialize(self, record: dict, schema_json: str) -> bytes:
         """
         Serialize a single record.
-        :param record:
-        :param schema_json:
-        :return: binary string value.
+
+        On encoding exception, use the much nicer library to get a more helpful error!
         """
-        return self._serialize_list([record], schema_json)
+        try:
+            return self._serialize_list([record], schema_json)
+        except AvroTypeException:
+            schema = SchemaValidator(schema_json)
+            parsed_schema = schema.parse()
+            parsed_schema.validate(record)
+            raise  # If the validator did not raise an error, raise again.
