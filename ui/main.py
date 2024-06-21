@@ -1,7 +1,15 @@
 import re
+import PySimpleGUI as sg
+from kafka.consumer import KafkaConsumer
+from .config import Config
 from .handlers.consumer_writer import ConsumerWriter
 from .handlers.reader import Reader
 
+CONFIG_PATH_TS_PATH = "main/convert_unix_ts_path"
+CONFIG_PATH_TOPIC = "main/topic"
+CONFIG_PATH_LIMIT = "main/limit"
+
+BUTTON_CHANGE_TOPIC = 'button_change_topic'
 BUTTON_CHANGE_TOPIC = 'button_change_topic'
 
 OUTPUT_TOPIC = 'output_topic'
@@ -11,6 +19,7 @@ INPUT_SEARCH = 'input_search'
 INPUT_SCAN = 'input_scan'
 BUTTON_SCAN = 'button_scan'
 INPUT_OFFSET = 'input_offset'
+INPUT_LIMIT = 'input_limit'
 BUTTON_SEARCH = 'button_search'
 
 OUTPUT_LIST = 'output_list'
@@ -26,32 +35,40 @@ FILE_NAME_SPLIT = ' - '
 
 
 class Main:
-    def __init__(self, config, window, consumer, cache_path) -> None:
+    def __init__(self, config: Config, window: sg.Window, consumer: KafkaConsumer) -> None:
+        self.config = config
         self.window = window
         self.consumer = consumer
-        self.reader = Reader(cache_path)
+        self.reader = Reader(config.cache_path)
         self.consumer_writer = ConsumerWriter(
             parent_ui=self,
             consumer=consumer,
             reader=self.reader,
-            convert_unix_ts_path=config.get('convert_unix_ts_path', '')
+            convert_unix_ts_path=config.get_path(CONFIG_PATH_TS_PATH)
         )
         self.topic_list = consumer.get_topic_list()
         self.has_results = False
         self.is_selecting_topic = False
         self.full_offsets = []
         self.current_offset = 0
-        self.init(config.get('topic', ''))
+        self.current_limit = 1000
+        self.init(
+            config.get_path(CONFIG_PATH_TOPIC),
+            config.get_path(CONFIG_PATH_LIMIT),
+        )
 
     def handle(self, event, values):
         # Get the focus element keyname.
         focus_element_obj = self.window.find_element_with_focus()
         focus_element = focus_element_obj.Key if focus_element_obj else None
 
+        # Update limit, if needed.
+        self._update_limit(values[INPUT_LIMIT])
+
         # Handle load button.
         if event == BUTTON_LOAD:
             self._load_topic()
-
+        # Change topic name.
         elif event == BUTTON_CHANGE_TOPIC:
             self._toggle_topic_selection()
             self._update_list()
@@ -72,14 +89,26 @@ class Main:
 
         # Handle click in list.
         elif event == OUTPUT_LIST:
-            if self.has_results:
+            if self.has_results and values[OUTPUT_LIST]:
                 self._update_output_content(values[OUTPUT_LIST][0])
 
-    def init(self, topic_name):
+    def init(self, topic_name, limit):
+        self._update_limit(limit)
         if self._attempt_topic(topic_name):
             self.full_offsets = self.reader.get_topic_offsets_from_cache(self.topic_name)
             self._auto_update_offset()
             self._update_list()
+
+    def _update_limit(self, new_limit):
+        try:
+            new_limit = int(new_limit)
+        except ValueError:
+            new_limit = 0
+        # If successfully changed.
+        if new_limit != self.current_limit and new_limit > 0:
+            self.current_limit = new_limit
+            self.config.save_value(CONFIG_PATH_LIMIT, new_limit)
+            self.window[INPUT_LIMIT].update(self.current_limit)
 
     def _attempt_topic(self, topic_name):
         self.has_results = False
@@ -91,6 +120,8 @@ class Main:
             self._toggle_topic_selection(False)
             self.window[OUTPUT_TOPIC].update(topic_name)
             self.topic_name = topic_name
+            self.config.save_value(CONFIG_PATH_TOPIC, topic_name)
+            self.config.save_value(CONFIG_PATH_TOPIC, topic_name)
             return True
 
     def _toggle_topic_selection(self, is_selecting=None):
@@ -113,7 +144,12 @@ class Main:
         self.window[OUTPUT_CONTENT].update('')
         self.window[OUTPUT_LIST].update([''])
         # Load.
-        self.consumer_writer.load_topic(self.topic_name, self.current_offset, search_key)
+        self.consumer_writer.load_topic(
+            self.topic_name,
+            self.current_offset,
+            search_key,
+            self.current_limit
+        )
         self.full_offsets = self.reader.get_topic_offsets_from_cache(self.topic_name)
         self._update_list()
         self._auto_update_offset()

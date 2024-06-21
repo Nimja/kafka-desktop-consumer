@@ -1,18 +1,24 @@
 import json
 import os
+from kafka.consumer import KafkaConsumer
 from datetime import datetime, timezone
 from .reader import Reader
+from ..dicthelper import get_dict_by_path
 
 FILE_NAME_SPLIT = ' - '
 
 class ConsumerWriter:
-    def __init__(self, parent_ui, consumer, reader: Reader, convert_unix_ts_path):
+    def __init__(self, parent_ui, consumer: KafkaConsumer, reader: Reader, convert_unix_ts_path):
         self.parent_ui = parent_ui
         self.consumer = consumer
         self.reader = reader
         self.convert_unix_ts_path = convert_unix_ts_path
 
-    def load_topic(self, topic_name, offset_start, search_key):
+    def load_topic(self, topic_name, offset_start, search_key, limit=None):
+        # Update limit if appropriate.
+        if limit and isinstance(limit, int) and limit > 0:
+            self.consumer.limit = limit
+
         self._update_status('Loading...')
         self.has_results = False
 
@@ -151,16 +157,7 @@ class ConsumerWriter:
         if not self.convert_unix_ts_path:
             return
 
-        parts = self.convert_unix_ts_path.split("/")
-        last = parts.pop()
-        handle = item
-        # Traverse path.
-        for part in parts:
-            if isinstance(handle, dict) and part in handle:
-                handle = handle[part]
-            else:
-                return
-
+        handle, last = get_dict_by_path(item, self.convert_unix_ts_path, {})
         # Check final value.
         if last not in handle:
             return

@@ -2,15 +2,15 @@
 import PySimpleGUI as sg
 from ui.layout import layout
 from ui.main import Main
-from ui.config import get_config
+from ui.config import config
 from kafka.consumer import KafkaConsumer
 
-# Get config and cache path.
-config, cache_path = get_config()
-main_config = config['main']
-
 # Get kafka consumer, which is passed to window.
-consumer = KafkaConsumer(config['kafka'], config['avro'], limit=int(main_config.get('limit')))
+consumer = KafkaConsumer(
+    config.get('kafka', {}),
+    config.get('avro', {}),
+    limit=int(config.get("main", {}).get('limit'))
+)
 
 # Init window with layout.
 window = sg.Window(
@@ -23,7 +23,7 @@ window = sg.Window(
 )
 
 # Init main class
-main = Main(main_config, window, consumer, cache_path)
+main = Main(config, window, consumer)
 
 # Main event loop.
 while True:

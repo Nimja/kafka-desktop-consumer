@@ -73,6 +73,8 @@ layout = [
         )
     ],
     [
-        sg.Text("Status: ", key=main.STATUS_TEXT),
+        sg.Text("Status: ", key=main.STATUS_TEXT, expand_x=True),
+        sg.Text("Limit"),
+        sg.Input(size=(10, 1), key=main.INPUT_LIMIT),
     ]
 ]
